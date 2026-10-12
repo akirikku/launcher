@@ -20,3 +20,10 @@ Launch buttons, round two:
 - README updated; everything pushed to GitHub
 
 Next: test on the work Mac (all macOS paths still untested, incl. the AppleScript for Claude); add summaries for the other projects; visual map layout; maybe Windows (wt.exe + Startup folder / Task Scheduler).
+
+## 2026-10-12 06:30
+Released v1.0.0: https://github.com/akirikku/launcher/releases/tag/v1.0.0
+- Updated the GitHub description to mention the three buttons (terminal, Claude Code, VS Code)
+- Tagged v1.0.0 and published a GitHub release with notes (Linux tested, macOS not yet)
+
+Next: test on the work Mac and cut v1.0.1 with any fixes; summaries for the other projects; visual map layout; maybe Windows.
