@@ -15,10 +15,26 @@ HOST, PORT = "127.0.0.1", 8765  # localhost only: never expose this to the netwo
 HERE = Path(__file__).parent
 JOURNAL = "JOURNAL.md"
 
-# "{dir}" in the terminal command is replaced with the project directory.
+# "{dir}" in these commands is replaced with the project directory.
 DEFAULT_TERMINAL = {
     "Linux": ["konsole", "--workdir", "{dir}"],
     "Darwin": ["open", "-a", "Terminal", "{dir}"],  # e.g. "iTerm" or "Ghostty" instead
+}
+
+# Continue the last Claude Code conversation in the project (starts a new one if there
+# is none). Afterwards the window stays open on a shell in the project dir.
+CLAUDE_SHELL_CMD = "claude --continue"
+DEFAULT_CLAUDE = {
+    "Linux": ["konsole", "--workdir", "{dir}", "-e", "bash", "-ic", f"{CLAUDE_SHELL_CMD}; exec bash"],
+    # `open -a Terminal` can't run a command, so use AppleScript. The dir is passed as an
+    # argument and shell-quoted by AppleScript rather than pasted into the script text.
+    "Darwin": ["osascript",
+               "-e", "on run argv",
+               "-e", 'tell application "Terminal" to do script "cd " & quoted form of (item 1 of argv)'
+                     f' & " && {CLAUDE_SHELL_CMD}"',
+               "-e", 'tell application "Terminal" to activate',
+               "-e", "end run",
+               "{dir}"],
 }
 
 
@@ -28,7 +44,15 @@ def load_config():
     return {
         "projects_dir": Path(cfg.get("projects_dir", "~/Projects")).expanduser(),
         "terminal": cfg.get("terminal") or DEFAULT_TERMINAL[platform.system()],
+        "claude": cfg.get("claude") or DEFAULT_CLAUDE[platform.system()],
     }
+
+
+def launch(template, project):
+    # Popen + start_new_session: the terminal outlives the request and the server.
+    cmd = [arg.replace("{dir}", str(project)) for arg in template]
+    subprocess.Popen(cmd, start_new_session=True,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 CONFIG = load_config()
@@ -113,10 +137,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(404, {"error": "unknown project"})
 
         if self.path == "/api/resume":
-            # Popen + start_new_session: the terminal outlives the request and the server.
-            cmd = [arg.replace("{dir}", str(p)) for arg in CONFIG["terminal"]]
-            subprocess.Popen(cmd, start_new_session=True,
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            launch(CONFIG["terminal"], p)
+            self._send(200, {"ok": True})
+        elif self.path == "/api/claude":
+            launch(CONFIG["claude"], p)
             self._send(200, {"ok": True})
         elif self.path == "/api/journal":
             entry = body.get("entry", "").strip()

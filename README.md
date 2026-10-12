@@ -6,6 +6,7 @@ A local web dashboard for the projects in `~/Projects`. Each project gets a card
 - **Last work done**: the latest git commit, or the most recently edited file if the project isn't a git repo
 - **Journal**: entries you add from the page, stored in the project's own `JOURNAL.md`
 - **▶ Resume Work**: opens a terminal in the project folder (Konsole on Linux, Terminal on macOS)
+- **✦ Resume with Claude**: opens a terminal there running `claude --continue`, which picks up the last [Claude Code](https://claude.com/claude-code) conversation in that folder or starts a new one. When you quit Claude, the window stays open on a shell in the project folder.
 
 It runs on Linux (KDE) and macOS. It uses only the Python 3 standard library, so there is nothing to install.
 
@@ -15,7 +16,7 @@ It runs on Linux (KDE) and macOS. It uses only the Python 3 standard library, so
 python3 server.py
 ```
 
-Then open <http://127.0.0.1:8765>. The dashboard only works while the server is running.
+Then open <http://127.0.0.1:8765>. Resume with Claude needs [Claude Code](https://claude.com/claude-code) installed (`claude` on your `PATH`). The dashboard only works while the server is running.
 
 ## Run it at login
 
@@ -60,15 +61,19 @@ Settings that differ between machines go in `config.json` next to `server.py`. G
   - macOS: `["open", "-a", "Terminal", "{dir}"]`
 
   Other examples: `["open", "-a", "Ghostty", "{dir}"]`, or `["code", "{dir}"]` to open VS Code instead.
+- `claude`: the command run by Resume with Claude, also using `{dir}`. Defaults:
+  - Linux: `["konsole", "--workdir", "{dir}", "-e", "bash", "-ic", "claude --continue; exec bash"]`
+  - macOS: an `osascript` command that tells Terminal to run `cd <dir> && claude --continue`. See `DEFAULT_CLAUDE` in `server.py`.
 
 Restart the service after changing `config.json`.
 
 ## How it works
 
-Browsers don't let web pages start programs, so a small local server does it. `server.py` serves the page and handles three endpoints:
+Browsers don't let web pages start programs, so a small local server does it. `server.py` serves the page and handles four endpoints:
 
 - `GET /api/projects` lists the projects and their info
 - `POST /api/resume` opens the terminal in a project
+- `POST /api/claude` opens the terminal running Claude Code in a project
 - `POST /api/journal` adds a journal entry
 
 Safety measures:
