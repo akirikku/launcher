@@ -37,6 +37,16 @@ DEFAULT_CLAUDE = {
                "{dir}"],
 }
 
+# Same as `cd {dir} && code .`. On macOS the `code` CLI is often not on the service's
+# PATH, so open the app directly.
+DEFAULT_VSCODE = {
+    "Linux": ["code", "{dir}"],
+    "Darwin": ["open", "-a", "Visual Studio Code", "{dir}"],
+}
+
+# POST endpoint -> config key of the command it runs.
+LAUNCH_ENDPOINTS = {"/api/terminal": "terminal", "/api/claude": "claude", "/api/vscode": "vscode"}
+
 
 def load_config():
     f = HERE / "config.json"
@@ -45,11 +55,12 @@ def load_config():
         "projects_dir": Path(cfg.get("projects_dir", "~/Projects")).expanduser(),
         "terminal": cfg.get("terminal") or DEFAULT_TERMINAL[platform.system()],
         "claude": cfg.get("claude") or DEFAULT_CLAUDE[platform.system()],
+        "vscode": cfg.get("vscode") or DEFAULT_VSCODE[platform.system()],
     }
 
 
 def launch(template, project):
-    # Popen + start_new_session: the terminal outlives the request and the server.
+    # Popen + start_new_session: the launched app outlives the request and the server.
     cmd = [arg.replace("{dir}", str(project)) for arg in template]
     subprocess.Popen(cmd, start_new_session=True,
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -136,11 +147,8 @@ class Handler(BaseHTTPRequestHandler):
         if not p:
             return self._send(404, {"error": "unknown project"})
 
-        if self.path == "/api/resume":
-            launch(CONFIG["terminal"], p)
-            self._send(200, {"ok": True})
-        elif self.path == "/api/claude":
-            launch(CONFIG["claude"], p)
+        if self.path in LAUNCH_ENDPOINTS:
+            launch(CONFIG[LAUNCH_ENDPOINTS[self.path]], p)
             self._send(200, {"ok": True})
         elif self.path == "/api/journal":
             entry = body.get("entry", "").strip()

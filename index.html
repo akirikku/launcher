@@ -5,9 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Project Map</title>
 <style>
-  :root { --bg:#f6f5f2; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --line:#e2e0db; --accent:#2f6fd6; }
+  /* Accent: pastel take on GitHub's purple (#8250df). */
+  :root { --bg:#f6f5f2; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --line:#e2e0db;
+          --accent-bg:#e8defd; --accent-bg-hover:#ddd0fb; --accent-line:#cfbcf7; --accent-ink:#4c2889;
+          --accent-icon:#8250df; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#161618; --card:#202024; --ink:#ececee; --muted:#9a9aa2; --line:#33333a; --accent:#6ea0ff; }
+    :root { --bg:#161618; --card:#202024; --ink:#ececee; --muted:#9a9aa2; --line:#33333a;
+            --accent-bg:#cbb8f6; --accent-bg-hover:#d8c9f8; --accent-line:#cbb8f6; --accent-ink:#2a1259;
+            --accent-icon:#b99cf2; }
   }
   * { box-sizing: border-box; }
   body { margin:0; padding:24px 16px; background:var(--bg); color:var(--ink);
@@ -22,13 +27,19 @@
   .summary:empty::before { content:"No summary yet: add a README or .project.json"; color:var(--muted); font-style:italic; }
   button { font:inherit; cursor:pointer; border-radius:6px; padding:7px 12px; border:1px solid var(--line);
            background:transparent; color:var(--ink); }
-  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  button:hover { border-color:var(--accent-line); }
+  button.primary { background:var(--accent-bg); border-color:var(--accent-line); color:var(--accent-ink); font-weight:600; }
+  button.primary:hover { background:var(--accent-bg-hover); }
   details pre { white-space:pre-wrap; font:13px/1.45 ui-monospace, monospace; max-height:180px; overflow:auto;
                 background:var(--bg); padding:8px; border-radius:6px; margin:6px 0; }
   textarea { width:100%; font:inherit; min-height:60px; background:var(--bg); color:var(--ink);
              border:1px solid var(--line); border-radius:6px; padding:6px; }
   .row { display:flex; flex-direction:column; gap:8px; margin-top:auto; }
-  .row button { width:100%; white-space:nowrap; }
+  .row button { width:100%; white-space:nowrap; display:flex; align-items:center; gap:10px; padding:8px 14px; }
+  /* Fixed-size icon column so the labels line up across the stacked buttons. */
+  .icon { width:16px; height:16px; flex:none; fill:none; stroke:var(--accent-icon); stroke-width:2;
+          stroke-linecap:round; stroke-linejoin:round; }
+  .primary .icon { stroke:currentColor; }
 </style>
 </head>
 <body>
@@ -48,8 +59,18 @@
       <button class="save">Add entry</button>
     </details>
     <div class="row">
-      <button class="primary resume">▶ Resume Work</button>
-      <button class="claude" title="claude --continue in this folder">✦ Resume with Claude</button>
+      <button class="primary" data-launch="terminal">
+        <svg class="icon" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        Open Terminal
+      </button>
+      <button data-launch="claude" title="claude --continue in this folder">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 3l2.1 6.9L21 12l-6.9 2.1L12 21l-2.1-6.9L3 12l6.9-2.1z"/></svg>
+        Resume with Claude
+      </button>
+      <button data-launch="vscode" title="code . in this folder">
+        <svg class="icon" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Open in VS Code
+      </button>
     </div>
   </div>
 </template>
@@ -77,8 +98,9 @@ async function load() {
   for (const p of projects) {
     const card = document.getElementById("tpl").content.firstElementChild.cloneNode(true);
     fill(card, p);
-    card.querySelector(".resume").onclick = () => api("/api/resume", { name: p.name });
-    card.querySelector(".claude").onclick = () => api("/api/claude", { name: p.name });
+    for (const btn of card.querySelectorAll("[data-launch]")) {
+      btn.onclick = () => api(`/api/${btn.dataset.launch}`, { name: p.name });
+    }
     card.querySelector(".save").onclick = async () => {
       const ta = card.querySelector("textarea");
       fill(card, await api("/api/journal", { name: p.name, entry: ta.value }));
