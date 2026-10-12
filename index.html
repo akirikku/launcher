@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Map</title>
+<style>
+  :root { --bg:#f6f5f2; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --line:#e2e0db; --accent:#2f6fd6; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#161618; --card:#202024; --ink:#ececee; --muted:#9a9aa2; --line:#33333a; --accent:#6ea0ff; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:24px 16px; background:var(--bg); color:var(--ink);
+         font:15px/1.5 system-ui, sans-serif; }
+  h1 { margin:0 auto 20px; max-width:1100px; font-size:22px; }
+  #grid { display:grid; gap:16px; max-width:1100px; margin:auto;
+          grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:16px; display:flex; flex-direction:column; gap:8px; }
+  .card h2 { margin:0; font-size:17px; }
+  .muted { color:var(--muted); font-size:13px; }
+  .summary:empty::before { content:"No summary yet: add a README or .project.json"; color:var(--muted); font-style:italic; }
+  button { font:inherit; cursor:pointer; border-radius:6px; padding:7px 12px; border:1px solid var(--line);
+           background:transparent; color:var(--ink); }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  details pre { white-space:pre-wrap; font:13px/1.45 ui-monospace, monospace; max-height:180px; overflow:auto;
+                background:var(--bg); padding:8px; border-radius:6px; margin:6px 0; }
+  textarea { width:100%; font:inherit; min-height:60px; background:var(--bg); color:var(--ink);
+             border:1px solid var(--line); border-radius:6px; padding:6px; }
+  .row { display:flex; gap:8px; margin-top:auto; }
+</style>
+</head>
+<body>
+<h1>Projects</h1>
+<div id="grid"></div>
+
+<template id="tpl">
+  <div class="card">
+    <h2></h2>
+    <div class="muted path"></div>
+    <div class="summary"></div>
+    <div class="muted last"></div>
+    <details>
+      <summary class="muted">Journal</summary>
+      <pre class="journal"></pre>
+      <textarea placeholder="What did you do / what's next?"></textarea>
+      <button class="save">Add entry</button>
+    </details>
+    <div class="row"><button class="primary resume">▶ Resume Work</button></div>
+  </div>
+</template>
+
+<script>
+const api = (path, body) => fetch(path, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", "X-Launcher": "1" },
+  body: JSON.stringify(body),
+}).then(r => r.json());
+
+function fill(card, p) {
+  card.querySelector("h2").textContent = p.name;
+  card.querySelector(".path").textContent = p.path;
+  card.querySelector(".summary").textContent = p.summary;
+  card.querySelector(".last").textContent = p.last
+    ? `Last: ${p.last.what} · ${new Date(p.last.when).toLocaleString()}` : "No activity yet";
+  card.querySelector(".journal").textContent = p.journal.trim() || "(empty)";
+}
+
+async function load() {
+  const projects = await fetch("/api/projects").then(r => r.json());
+  const grid = document.getElementById("grid");
+  grid.replaceChildren();
+  for (const p of projects) {
+    const card = document.getElementById("tpl").content.firstElementChild.cloneNode(true);
+    fill(card, p);
+    card.querySelector(".resume").onclick = () => api("/api/resume", { name: p.name });
+    card.querySelector(".save").onclick = async () => {
+      const ta = card.querySelector("textarea");
+      fill(card, await api("/api/journal", { name: p.name, entry: ta.value }));
+      ta.value = "";
+    };
+    grid.append(card);
+  }
+}
+load();
+</script>
+</body>
+</html>
