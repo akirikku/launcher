@@ -10,3 +10,13 @@ Turned the prototype into a real project:
 - Put it under git and published it: https://github.com/akirikku/launcher (description + topics set)
 
 Next: clone and install on the work Mac and test Resume Work there (macOS side is untested so far); add summaries (.project.json) for the other projects; think about the "visual map" layout.
+
+## 2026-10-12 06:25
+Launch buttons, round two:
+- Added "Resume with Claude": opens Konsole running `claude --continue` (new conversation if none), window stays on a shell afterwards. Tested by resuming this very session from the dashboard.
+- Added "Open in VS Code" (`code <dir>`; `open -a "Visual Studio Code"` on macOS)
+- Renamed "Resume Work" to "Open Terminal"; all three buttons go through one LAUNCH_ENDPOINTS table (/api/terminal, /api/claude, /api/vscode), each command configurable in config.json
+- Restyled: pastel GitHub-purple accent, buttons stacked full width with aligned SVG icons
+- README updated; everything pushed to GitHub
+
+Next: test on the work Mac (all macOS paths still untested, incl. the AppleScript for Claude); add summaries for the other projects; visual map layout; maybe Windows (wt.exe + Startup folder / Task Scheduler).
