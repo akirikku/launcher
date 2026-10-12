@@ -4,7 +4,7 @@ PartOf=graphical-session.target
 After=graphical-session.target
 
 [Service]
-ExecStart=/usr/bin/python3 @REPO_DIR@/server.py
+ExecStart=@PYTHON@ @REPO_DIR@/server.py
 Restart=on-failure
 
 [Install]

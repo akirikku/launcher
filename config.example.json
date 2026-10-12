@@ -1,0 +1,4 @@
+{
+  "projects_dir": "~/Projects",
+  "terminal": ["open", "-a", "iTerm", "{dir}"]
+}

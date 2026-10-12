@@ -1,18 +1,38 @@
 #!/usr/bin/env python3
-"""Local project dashboard: serves index.html and launches Konsole in a project dir.
+"""Local project dashboard: serves index.html and opens a terminal in a project dir.
 
 Run:  python3 server.py   then open http://127.0.0.1:8765
+Per-machine settings go in config.json next to this file (see config.example.json).
 """
 import json
+import platform
 import subprocess
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-PROJECTS_DIR = Path.home() / "Projects"
 HOST, PORT = "127.0.0.1", 8765  # localhost only: never expose this to the network
 HERE = Path(__file__).parent
 JOURNAL = "JOURNAL.md"
+
+# "{dir}" in the terminal command is replaced with the project directory.
+DEFAULT_TERMINAL = {
+    "Linux": ["konsole", "--workdir", "{dir}"],
+    "Darwin": ["open", "-a", "Terminal", "{dir}"],  # e.g. "iTerm" or "Ghostty" instead
+}
+
+
+def load_config():
+    f = HERE / "config.json"
+    cfg = json.loads(f.read_text()) if f.exists() else {}
+    return {
+        "projects_dir": Path(cfg.get("projects_dir", "~/Projects")).expanduser(),
+        "terminal": cfg.get("terminal") or DEFAULT_TERMINAL[platform.system()],
+    }
+
+
+CONFIG = load_config()
+PROJECTS_DIR = CONFIG["projects_dir"]
 
 
 def project_dirs():
@@ -93,8 +113,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(404, {"error": "unknown project"})
 
         if self.path == "/api/resume":
-            # Popen + start_new_session: Konsole outlives the request and the server.
-            subprocess.Popen(["konsole", "--workdir", str(p)], start_new_session=True,
+            # Popen + start_new_session: the terminal outlives the request and the server.
+            cmd = [arg.replace("{dir}", str(p)) for arg in CONFIG["terminal"]]
+            subprocess.Popen(cmd, start_new_session=True,
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             self._send(200, {"ok": True})
         elif self.path == "/api/journal":
